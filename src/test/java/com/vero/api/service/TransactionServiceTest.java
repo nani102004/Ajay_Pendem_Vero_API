@@ -19,9 +19,11 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @ExtendWith(MockitoExtension.class)
 class TransactionServiceTest {
@@ -186,6 +188,16 @@ class TransactionServiceTest {
     }
 
     @Test
+    void testCreateTransaction_whenRequestIsNull_throwsException() {
+        // Verified create transaction when transaction is null
+        assertThatThrownBy(() -> service.createTransaction(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("request must not be null");
+
+        verify(repository, never()).save(any(Transaction.class));
+    }
+
+    @Test
     void testCalculateMonthlySpend_includesFirstDayOfMonth() {
         // Catches the off-by-one bug: transactions dated on the 1st of the target month
         // must be included in the result.
@@ -238,5 +250,61 @@ class TransactionServiceTest {
         Map<Category, BigDecimal> result = service.getTopSpendingCategories(sampleTransactions, 2);
 
         assertThat(result).hasSizeLessThanOrEqualTo(2);
+    }
+
+    @Test
+    void testDeleteTransaction_deletesById() {
+        service.deleteTransaction(1L);
+
+        verify(repository, times(1)).deleteById(1L);
+    }
+
+    @Test
+    void testDeleteTransaction_whenIdIsNull_throwsException() {
+        assertThatThrownBy(() -> service.deleteTransaction(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("id must not be null");
+
+        verify(repository, never()).deleteById(any());
+    }
+
+    @Test
+    void testGetTransactionsByDateRange_returnsTransactionsWithinRange() {
+        LocalDate startDate = LocalDate.of(2024, 12, 1);
+        LocalDate endDate = LocalDate.of(2024, 12, 14);
+
+        List<Transaction> expected = sampleTransactions.stream()
+                .filter(t -> !t.getTransactionDate().isBefore(startDate)
+                        && !t.getTransactionDate().isAfter(endDate))
+                .toList();
+
+        when(repository.findByTransactionDateBetween(startDate, endDate))
+                .thenReturn(expected);
+
+        List<Transaction> result = service.getTransactionsByDateRange(startDate, endDate);
+
+        assertThat(result)
+                .hasSize(4)
+                .allMatch(t -> !t.getTransactionDate().isBefore(startDate)
+                        && !t.getTransactionDate().isAfter(endDate));
+
+        verify(repository, times(1))
+                .findByTransactionDateBetween(startDate, endDate);
+    }
+
+    @Test
+    void testGetTransactionsByDateRange_whenNoTransactions_returnsEmptyList() {
+        LocalDate startDate = LocalDate.of(2030, 1, 1);
+        LocalDate endDate = LocalDate.of(2030, 1, 31);
+
+        when(repository.findByTransactionDateBetween(startDate, endDate))
+                .thenReturn(List.of());
+
+        List<Transaction> result = service.getTransactionsByDateRange(startDate, endDate);
+
+        assertThat(result).isEmpty();
+
+        verify(repository, times(1))
+                .findByTransactionDateBetween(startDate, endDate);
     }
 }

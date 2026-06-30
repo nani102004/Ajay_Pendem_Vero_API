@@ -28,17 +28,11 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public Optional<Transaction> getTransactionById(Long id) {
-        if(id == null){
-            throw new IllegalArgumentException("id must not be null");
-        }
         return repository.findById(id);
     }
 
     @Override
     public List<Transaction> getTransactionsByAccount(Long accountId) {
-        if(accountId == null){
-            throw new IllegalArgumentException("accountId must not be null");
-        }
         return repository.findByAccountId(accountId);
     }
 
