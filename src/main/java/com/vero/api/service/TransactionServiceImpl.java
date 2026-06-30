@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -29,11 +28,17 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public Optional<Transaction> getTransactionById(Long id) {
+        if(id == null){
+            throw new IllegalArgumentException("id must not be null");
+        }
         return repository.findById(id);
     }
 
     @Override
     public List<Transaction> getTransactionsByAccount(Long accountId) {
+        if(accountId == null){
+            throw new IllegalArgumentException("accountId must not be null");
+        }
         return repository.findByAccountId(accountId);
     }
 
@@ -44,6 +49,10 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public Transaction createTransaction(TransactionRequest request) {
+        if(request == null){
+            throw new IllegalArgumentException("request must not be null");
+        }
+        
         Transaction transaction = Transaction.builder()
                 .accountId(request.getAccountId())
                 .amount(request.getAmount())
@@ -51,11 +60,15 @@ public class TransactionServiceImpl implements TransactionService {
                 .category(request.getCategory())
                 .transactionDate(request.getTransactionDate())
                 .build();
+
         return repository.save(transaction);
     }
 
     @Override
     public void deleteTransaction(Long id) {
+        if(id == null){
+            throw new IllegalArgumentException("id must not be null");
+        }
         repository.deleteById(id);
     }
 
@@ -65,11 +78,15 @@ public class TransactionServiceImpl implements TransactionService {
         LocalDate endOfMonth = startOfMonth.withDayOfMonth(startOfMonth.lengthOfMonth());
 
         return repository.findAll().stream()
-                .filter(t -> !t.getTransactionDate().isAfter(startOfMonth)
+                .filter(t -> !t.getTransactionDate().isBefore(startOfMonth)
                         && !t.getTransactionDate().isAfter(endOfMonth))
                 .collect(Collectors.groupingBy(
-                        Transaction::getCategory,
-                        Collectors.reducing(BigDecimal.ZERO, Transaction::getAmount, BigDecimal::add)
+                        t -> t.getCategory(),
+                        Collectors.reducing(
+                            BigDecimal.ZERO, 
+                            t->t.getAmount(), 
+                            (a,b) -> a.add(b)
+                        )
                 ));
     }
 
