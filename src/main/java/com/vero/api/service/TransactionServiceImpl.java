@@ -39,8 +39,7 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public List<Transaction> getTransactionsByDateRange(LocalDate startDate, LocalDate endDate) {
-        // TODO: implement date range filtering
-        return Collections.emptyList();
+        return repository.findByTransactionDateBetween(startDate, endDate);
     }
 
     @Override
