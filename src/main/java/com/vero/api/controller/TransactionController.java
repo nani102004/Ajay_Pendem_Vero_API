@@ -61,9 +61,11 @@ public class TransactionController {
     }
 
     @PostMapping
-    public ResponseEntity<Transaction> createTransaction(@Valid @RequestBody TransactionRequest request) {
+    public ResponseEntity<TransactionResponse> createTransaction(@Valid @RequestBody TransactionRequest request) {
         Transaction created = service.createTransaction(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        return ResponseEntity
+            .status(HttpStatus.CREATED)
+            .body(TransactionResponse.fromTransaction(created));
     }
 
     @DeleteMapping("/{id}")
